@@ -1,0 +1,17 @@
+{
+  "name": "game-of-thrones",
+  "version": "1.0.0",
+  "author": "Afrivelle",
+  "private": true,
+  "scripts": {
+    "test": "tap test/*.js",
+    "start": "node app.js"
+  },
+  "dependencies": {
+    "body-parser": "*",
+    "cookie-parser": "*",
+    "express": "*",
+    "morgan": "*",
+    "pug": "*"
+  }
+}
