@@ -2,7 +2,7 @@ const
     router = require("express").Router(),
     appUtils = require("../lib/utils"),
     passport = require("passport"),
-    User = require("../lib/db").User
+    {User} = require("../lib/db")
 ;
 
 module.exports = router;

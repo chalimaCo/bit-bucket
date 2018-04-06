@@ -1,49 +1,84 @@
 const
     async = require("async"),
+    fs = require("fs"),
+    multer = require("multer"),
+    mongoose = require("mongoose"),
     router = require("express").Router(),
     appUtils = require("../lib/utils"),
-    mongoose = require("mongoose"),
-    multer = require("multer"),
-    Question = require("../lib/db").Question
+    auth = require("../lib/auth"),
+    {Question} = require("../lib/db")
 ;
 
 module.exports = router;
 router
     .get("/", getQuestions)
-    .post("/", postQuestions)
+    .post("/", auth.bounceNonAdmin, postQuestions)
+;
 
 function getQuestions(req, res, next){
-    var [limit, from] = [Number(req.query.limit) || 20, Number(req.query.from) || 0];
-    Question.find({}, "content answer options", {limit}, function sendQuestions(err, questions){
+    let limit = Number(req.query.limit) || 20,
+        skip =  Number(req.query.from) || 0
+    ;
+    Question.find({}, "content answer options", {limit, skip}, function sendQuestions(err, questions){
         if(err) return next(appUtils.ServerError(err));
         if(!questions.length) return res._sendError("No matching documents", appUtils.ErrorReport(404, {questions: "no questions found found"}));
         return res._success(questions)
     })
-}
+};
+
 function postQuestions(req,res,next){
-    let postQuestions = [],
-        receivedQuestions = req.body.questions
-    ;
-    while(receivedQuestions.length){
-        let questionfields = {content: undefined, answer: undefined, options: {a: undefined, b: undefined, c: undefined ,d: undefined}},
-            question = receivedQuestions.shift();
+    if(req.file){
+        let questionfields = Question.Fields(),
+            question = JSON.parse(req.body.question)
         ;
-        with(questionfields){
-            [content, answer] = [question.content, question.answer];
+       with(questionfields){
+            ({content, answer, imagePath}) = question; 
             if(question.options){
                 with(options){                                            //of questionfields
                     [a, b, c, d] = [question.options.a, question.options.b, question.options.c, question.options.d];
                 }
             }
         }
-        postQuestions.push( new Question(questionfields))
-    }
-    async.parallel(postQuestions.map(function makeFunction(question){    //return a function that saves the question
-        return async.reflect(function saveUser(cb){
-            question.save(cb)
+        Question.create(questionfields, function reportOutcome(err, question){
+            if(err){
+                fs.unlink(req.file.path, function afterImageDelete(err){
+                    if(err) next(appUtils.ServerError(500, "none", err));
+                    let errorDetails = {};
+                    if(err instanceof mongoose.Error.ValidationError){
+                        for(errorName in err.errors){
+                            errorDetails[errorName] = err.errors[errorName].message;
+                        }
+                        return res._sendError(`invalid and/or missing parameters`, appUtils.ErrorReport(errorDetails))
+                    };
+                    return next(appUtils.ServerError(500, err))
+                })
+            }
+                return res._success({_id: question._id})
         })
-    }), reporter(res, next))
-}
+    }else{
+        let postQuestions = [],
+        receivedQuestions = req.body.questions
+        ;
+        while(receivedQuestions.length){
+            let questionfields = Question.Fields(),
+                question = receivedQuestions.shift();
+            ;
+            with(questionfields){
+                [content, answer] = [question.content, question.answer];
+                if(question.options){
+                    with(options){                                            //of questionfields
+                        [a, b, c, d] = [question.options.a, question.options.b, question.options.c, question.options.d];
+                    }
+                }
+            }
+            postQuestions.push(async.reflect(function saveUser(cb){
+                new Question(questionfields).save(cb)                         //return a function that saves the question
+            }))
+        }
+        async.parallel(postQuestions, reporter(res, next))
+    }
+};
+
 function reporter(res, next){
     return function reportOutcomes(_err, results){
         results = results.map(function makeReport(result){
@@ -60,15 +95,6 @@ function reporter(res, next){
                         errors: appUtils.ErrorReport(errorDetails)
                     }
                 };
-                if(err.code===11000){                           /*duplicate value for unique field*/
-                    let violatedField = err.message.match(/index: (.*)_1/)[1];
-                    errorDetails[violatedField] = `${violatedField} already exists`;
-                    return {
-                        status: "failed",
-                        reason: `${violatedField} already taken`,
-                        errors: appUtils.ErrorReport(409, errorDetails)
-                    }
-                }
                 next(appUtils.ServerError(500, "none", err));
                 return {
                     status: "failed",

@@ -11,6 +11,7 @@ const
   login = require("./routes/login"),
   signup = require("./routes/signup"),
   questions = require("./routes/questions"),
+  admin = require("./routes/admin"),
   passport = require("passport"),
   app = express()
 ;
@@ -26,10 +27,11 @@ app
   .use(logger('dev'))
   .use(bodyParser.json())
   .use(cookieParser())
-  .use(express.static(path.join(__dirname, 'public')))
+  .get(express.static(path.join(__dirname, 'public')))
   .use("/login", login)
   .use("/signup", signup)
   .use("/questions", auth.bounceUnauthorized, questions)
+  .use("/admin", auth.bounceNonAdmin, admin)
   .use(appUtils.serverErrorHandler)
 ;
 

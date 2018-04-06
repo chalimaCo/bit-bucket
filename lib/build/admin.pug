@@ -1,0 +1,33 @@
+doctype html
+html(lang="en")
+    head
+        block title
+            title Welcome {{name}}
+        meta(charset="utf-8" content-type="text/html")
+        meta(name="viewport" content="width=device-width, initial-scale=1")
+        //-link(rel="shortcut icon" href="/images/favicon.jpg")
+        meta(name="author" content="Mejulu Emmanuel")
+        meta(name="description" content="Bit-bucket admin panel")
+        meta(name="generator" content="express/pug")
+        meta(name="creator" content="Afrivelle" )
+        block stylesheets
+            link(rel="stylesheet" href ="/stylesheets/bootstrap.min.css")
+            //-link(rel="stylesheet", href="/stylesheets/style.css")
+        block scripts
+            script(src="/scripts/jquery.min.js")
+            script(src="/scripts/bootstrap.min.js" async)
+            script(src="/scripts/main.js" defer)
+    body
+        .container
+            .row
+                .col-3
+                    nav
+                        ul.nav.nav-tab.nav-fill.flex-column
+                            li.nav-item.active
+                                router-link.nav-link(to="/post-question") Post Questions
+                            li.nav-item
+                                router-link.nav-link(to="/get-questions") Get Questions
+                            li.nav-item
+                                router-link.nav-link(to="/users") Manage Users
+                .col
+                    router-view

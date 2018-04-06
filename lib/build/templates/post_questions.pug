@@ -1,0 +1,10 @@
+h1 Post Questions
+ul.nav.nav-tab.nav-fill.flex-column
+    li.nav-item.active
+        button.nav-link(v-on:click="type = noImage") No image Questions
+    li.nav-item
+        button.nav-link(v-on:click="type = image") Image Question
+hr
+no-image-post(v-show="type == 'noImage'")
+
+image-post(v-show="type == 'image'")
